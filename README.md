@@ -1,0 +1,2 @@
+# Smart-Price-Aggregator-A-Cross-Platform-E-Commerce-Comparison-System
+The Smart Price Aggregator: A Cross-Platform E-Commerce Comparison System is a smart web application that helps users compare product prices from different online shopping platforms like Amazon, Flipkart, and eBay. It collects product .The system then compares these details and shows the best deals in one place, saving time and effort for users.
