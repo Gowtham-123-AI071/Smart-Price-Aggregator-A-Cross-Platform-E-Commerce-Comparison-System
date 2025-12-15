@@ -1,0 +1,752 @@
+<!-- @ts-nocheck -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📊 Smart Price Aggregator : A Cross-Platform E-Commerce Comparison System  </title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    /* --- Page theme --- */
+    body{
+      background:linear-gradient(135deg,#0a0f24,#13003e,#00081f);
+      background-attachment:fixed;color:#fff;font-family:Segoe UI,system-ui;margin:0
+    }
+    h1{
+      text-align:center;margin:22px 0;
+      background:linear-gradient(90deg,#000607,#0078d7,#a020f0);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent
+    }
+
+    /* added HIGHLIGHT styles */
+    .lowest-card{
+      border:2px solid #22c55e !important;
+      box-shadow:0 0 12px #22c55e !important;
+    }
+    .highest-card{
+      border:2px solid #ef4444 !important;
+      box-shadow:0 0 12px #ef4444 !important;
+    }
+    .saving-text{
+      margin-top:8px;
+      font-weight:700;
+      color:#22c55e;
+      font-size:15px;
+    }
+
+    /* --- Filters button (left side) --- */
+    .filter-toggle{
+      position:fixed;left:24px;top:120px;z-index:1001;
+      background:linear-gradient(135deg,#0078d7,#a020f0);
+      color:#fff;border:0;padding:14px 22px;border-radius:10px;
+      cursor:pointer;box-shadow:0 6px 16px rgba(160,32,240,.4);
+      transition:transform .25s ease, opacity .2s
+    }
+    .filter-toggle:hover{transform:translateY(-1px)}
+    .filter-toggle.hide{opacity:0;pointer-events:none}
+
+    .search-box{display:flex;justify-content:center;align-items:center;gap:10px;margin:40px 0 10px}
+    .search-box input{
+      width:55%;padding:14px 16px;border-radius:10px;border:1px solid #4f5b78;
+      background:rgba(255,255,255,.08);color:#fff
+    }
+    .search-box button{
+      padding:14px 20px;border:0;border-radius:10px;
+      background:linear-gradient(135deg,#0078d7,#a020f0);color:#fff;cursor:pointer
+    }
+
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);
+      z-index:998;display:none;opacity:0;transition:opacity .25s}
+    .overlay.active{display:block;opacity:1}
+
+    .filter-sidebar{
+      position:fixed;top:0;right:-380px;width:340px;height:100%;
+      background:#1a234f;box-shadow:-6px 0 22px rgba(0,0,0,.35);padding:24px;z-index:999;
+      overflow-y:auto;border-top-left-radius:14px;border-bottom-left-radius:14px;
+      transition:right .32s ease, opacity .2s;opacity:0;visibility:hidden;pointer-events:none
+    }
+    .filter-sidebar.active{right:0;opacity:1;visibility:visible;pointer-events:auto}
+
+    .filter-section{margin-bottom:18px}
+    .filter-section label{display:block;margin-bottom:6px;font-weight:700;color:#cfe6ff}
+    .filter-section select,.filter-section input[type="number"]{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #3a4767;background:#0f1842;color:#e8f2ff
+    }
+    .range-inputs{display:flex;gap:8px}
+
+    .apply-btn,.reset-btn,.close-btn{
+      width:100%;margin-top:10px;padding:11px 12px;border:0;border-radius:8px;cursor:pointer;font-weight:700
+    }
+    .apply-btn{background:#0ea5e9;color:#081225}
+    .reset-btn{background:#f59e0b;color:#081225}
+    .close-btn{background:#ef4444;color:#fff}
+
+    .product-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:22px;margin:26px auto 50px;max-width:1200px}
+    .product-card{
+      width:250px;background:rgba(255,255,255,.08);backdrop-filter:blur(10px);
+      border:1px solid rgba(255,255,255,.2);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);
+      padding:16px;text-align:center;transition:transform .15s,box-shadow .15s;opacity:0;animation:fadeUp .25s ease forwards
+    }
+    .product-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.35)}
+    .product-card img{width:200px;height:200px;object-fit:contain}
+    .price{font-weight:800}
+    .btn{display:inline-block;margin:6px 4px 0;padding:10px 14px;border-radius:8px;text-decoration:none;color:#fff;background:#0078d7}
+    .btn:hover{filter:brightness(1.1)}
+    .btn-buy{background:#22c55e}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* === ADDED STYLES: best deal / trend / summary (non-destructive) === */
+    .best-deal-badge {
+      background: #4a4747;
+      color: #d2e715;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 900;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+    .trend-arrow {
+      font-size: 18px;
+      font-weight: 900;
+      margin-top: 6px;
+    }
+    .summary-box {
+      background: rgba(27, 130, 209, 0.897);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 18px;
+      margin: 24px auto;
+      border-radius: 12px;
+      max-width: 980px;
+      text-align: center;
+      font-size: 16px;
+      box-shadow: 0 8px 20px rgba(186, 154, 154, 0.24);
+      color: #000903;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1> 🛒 Smart E-Commerce Comparison Website 💰 </h1>
+    <button id="themeToggle" class="theme-toggle">🌙</button>
+
+    <div class="search-box">
+      <button type="button" id="filterBtn" class="filter-toggle">⚙️ Filters</button>
+      <form action="{{ url_for('search') }}" method="get" style="display:flex;gap:10px;align-items:center">
+        <input id="queryInput" type="text" name="query" placeholder="Search for products..." value="{{ query }}">
+        <button type="submit">🔎 Search</button>
+      </form>
+    </div>
+
+    <!-- overlay + drawer -->
+    <div id="overlay" class="overlay"></div>
+
+    <div id="filterSidebar" class="filter-sidebar" aria-hidden="true">
+      <h2 style="margin-top:0">🔍 Filter Options</h2>
+      <form id="filterForm" onsubmit="return false;">
+
+        <div class="filter-section">
+          <label for="brand">Brand</label>
+          <select id="brand"><option value="">All Brands</option></select>
+        </div>
+
+        <div class="filter-section">
+          <label>Price Sort</label>
+          <select id="priceSort">
+            <option value="">Default</option>
+            <option value="low-high">Low → High</option>
+            <option value="high-low">High → Low</option>
+          </select>
+        </div>
+
+        <div class="filter-section">
+          <label>Price Range (₹)</label>
+          <div class="range-inputs">
+            <input id="minPrice" type="number" placeholder="Min" min="0">
+            <input id="maxPrice" type="number" placeholder="Max" min="0">
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <label>Customer Reviews</label>
+          <select id="reviewSort">
+            <option value="">Default</option>
+            <option value="low-high">Low → High</option>
+            <option value="high-low">High → Low</option>
+          </select>
+        </div>
+
+        <div class="filter-section">
+          <label><input id="newArrivals" type="checkbox"> Show only latest</label>
+        </div>
+
+        <button id="applyFilters" class="apply-btn" type="button">Apply Filters</button>
+        <button id="resetFilters" class="reset-btn" type="button">Reset Filters</button>
+        <button id="closeSidebar" class="close-btn" type="button">Close</button>
+        
+      </form>
+    </div>
+
+    <!-- PRODUCT GRID -->
+    <div class="product-grid" id="grid">
+      {% if products %}
+        {% for product in products %}
+          <div
+            class="product-card"
+            data-price="{{ product.price.replace('₹','').replace(',','') }}"
+            data-brand="{{ (product.name.split(' ')[0] if product.name else '') | lower }}"
+            data-site="{{ product.site | lower }}"
+            data-new="{{ 'true' if loop.index0 < 5 else 'false' }}"
+            data-rating="{{ product.get('rating', 0) }}"
+          >
+            <!-- ADDED placeholder for Best Deal badge (non-destructive) -->
+            <div class="best-deal-holder" aria-hidden="true"></div>
+
+            <img src="{{ product.image }}" alt="{{ product.name }}">
+            <h3 class="title">{{ product.name }}</h3>
+            <p class="price">💰 {{ product.price }}</p>
+
+            <!-- ADDED placeholder for trend arrow (non-destructive) -->
+            <div class="trend-arrow-holder" aria-hidden="true"></div>
+
+            <p>🏬 {{ product.site }}</p>
+            <div>
+              <a href="{{ url_for('product_page', product_id=product.id) }}" class="btn">View Graph</a>
+              <a href="{{ url_for('go_to_store') }}?url={{ product.merchant_url | urlencode }}" target="_blank" class="btn btn-buy">Buy Now</a>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p style="text-align:center;">No results. Try a different search.</p>
+      {% endif %}
+    </div>
+
+    <!-- ADDED: Summary box -->
+    <div id="summaryBox" class="summary-box" style="display:none;"></div>
+
+  </div>
+
+<script>
+  /* ============================
+   THEME TOGGLE (non-destructive)
+============================ */
+const toggleBtn = document.getElementById("themeToggle");
+
+toggleBtn.addEventListener("click", () => {
+  document.documentElement.classList.toggle("light-mode");
+
+  // Change icon
+  if (document.documentElement.classList.contains("light-mode")) {
+    toggleBtn.textContent = "☀️";
+  } else {
+    toggleBtn.textContent = "🌙";
+  }
+
+  // Save user preference
+  localStorage.setItem("theme", 
+      document.documentElement.classList.contains("light-mode") ? "light" : "dark"
+  );
+});
+
+// Load saved theme
+if (localStorage.getItem("theme") === "light") {
+  document.documentElement.classList.add("light-mode");
+  toggleBtn.textContent = "☀️";
+}
+
+
+  /* your drawer JS — unchanged */
+  const filterBtn=document.getElementById('filterBtn');
+  const sidebar=document.getElementById('filterSidebar');
+  const overlay=document.getElementById('overlay');
+  const closeSidebarBtn=document.getElementById('closeSidebar');
+
+  function openDrawer(){ sidebar.classList.add('active'); overlay.classList.add('active'); filterBtn.classList.add('hide'); }
+  function closeDrawer(){ sidebar.classList.remove('active'); overlay.classList.remove('active'); filterBtn.classList.remove('hide'); }
+
+  filterBtn.addEventListener('click',openDrawer);
+  overlay.addEventListener('click',closeDrawer);
+  closeSidebarBtn.addEventListener('click',closeDrawer);
+
+  /* your original brand builder — unchanged */
+  const brandSelect=document.getElementById('brand');
+  const cards=Array.from(document.querySelectorAll('.product-card'));
+  function buildBrandOptions(){
+    const freq=new Map();
+    cards.forEach(c=>{
+      const b=(c.dataset.brand||'').trim().toLowerCase();
+      if(!b) return;
+      freq.set(b,(freq.get(b)||0)+1);
+    });
+    const top=Array.from(freq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5).map(x=>x[0]);
+    brandSelect.innerHTML='<option value="">All Brands</option>'+
+      top.map(b=>`<option value="${b}">${b.charAt(0).toUpperCase()+b.slice(1)}</option>`).join('');
+  }
+  buildBrandOptions();
+
+  /* ---- ROBUST numeric parser that keeps decimals ---- */
+  const toNum = v => {
+    // remove currency symbol, spaces and thousands separators like commas
+    const s = String(v === undefined || v === null ? '' : v);
+    const clean = s.replace(/[₹,\s]/g, '').replace(/[^\d.]/g, '');
+    const n = parseFloat(clean);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  /* ---- markHighLow now works on VISIBLE cards and is idempotent ---- */
+  function markHighLow(){
+    // remove previous markers & saving labels
+    cards.forEach(c=>{
+      c.classList.remove('lowest-card','highest-card');
+      const old = c.querySelector('.saving-text');
+      if(old) old.remove();
+      // clear any best-deal and trend placeholders so we redraw fresh
+      const bd = c.querySelector('.best-deal-holder');
+      if(bd) bd.innerHTML = '';
+      const ta = c.querySelector('.trend-arrow-holder');
+      if(ta) ta.innerHTML = '';
+    });
+
+    // visible cards only
+    const visible = cards.filter(c => c.style.display !== 'none');
+
+    if(!visible.length) return;
+
+    const sorted = visible.slice().sort((a,b)=> toNum(a.dataset.price) - toNum(b.dataset.price) );
+    const lowest = sorted[0];
+    const highest = sorted[sorted.length-1];
+
+    if(lowest) lowest.classList.add('lowest-card');
+    if(highest) highest.classList.add('highest-card');
+
+    if(lowest && highest){
+      const diff = toNum(highest.dataset.price) - toNum(lowest.dataset.price);
+      const saveTag = document.createElement('div');
+      saveTag.className = 'saving-text';
+      saveTag.innerText = "You save ₹" + diff.toLocaleString(undefined, {maximumFractionDigits:2});
+      lowest.appendChild(saveTag);
+    }
+
+    // After marking high/low, add best-deal badge & trend arrows & update summary
+    addBestDealBadge();
+    addTrendArrows();
+    updateSummaryBox();
+  }
+
+  /* call it once initially */
+  markHighLow();
+
+  /* your filter JS — unchanged besides using toNum & calling markHighLow */
+  const grid=document.getElementById('grid');
+  const priceSort=document.getElementById('priceSort');
+  const minPrice=document.getElementById('minPrice');
+  const maxPrice=document.getElementById('maxPrice');
+  const reviewSort=document.getElementById('reviewSort');
+  const newArrivals=document.getElementById('newArrivals');
+  const queryInput=document.getElementById('queryInput');
+
+  const STORE_KEY='pc_filters_v2';
+
+  function readState(){
+    return {
+      brand:(brandSelect.value||'').toLowerCase(),
+      pSort:priceSort.value,
+      min:minPrice.value ? toNum(minPrice.value) : null,
+      max:maxPrice.value ? toNum(maxPrice.value) : null,
+      rSort:reviewSort.value,
+      latest:newArrivals.checked,
+      q:(queryInput.value||'').toLowerCase()
+    };
+  }
+
+  function applyFilters(){
+    const f=readState();
+    const visible=[];
+
+    cards.forEach(card=>{
+      const price=toNum(card.dataset.price);
+      const brand=(card.dataset.brand||'').toLowerCase();
+      const title=(card.querySelector('.title')?.textContent||'').toLowerCase();
+      const latest=card.dataset.new==='true';
+
+      let show=true;
+      if(f.brand && brand!==f.brand) show=false;
+      if(f.min!==null && price<f.min) show=false;
+      if(f.max!==null && price>f.max) show=false;
+      if(f.q && !title.includes(f.q)) show=false;
+      if(f.latest && !latest) show=false;
+
+      card.style.display=show?'':'none';
+      if(show) visible.push(card);
+    });
+
+    if(f.pSort){
+      visible.sort((a,b)=>{
+        const pa=toNum(a.dataset.price);
+        const pb=toNum(b.dataset.price);
+        return f.pSort==='low-high'?pa-pb:pb-pa;
+      });
+    }else if(f.rSort){
+      visible.sort((a,b)=>{
+        const ra=parseFloat(a.dataset.rating||'0');
+        const rb=parseFloat(b.dataset.rating||'0');
+        return f.rSort === 'low-high' ? ra-rb : rb-ra;
+      });
+    }
+    visible.forEach(el=>grid.appendChild(el));
+
+    localStorage.setItem(STORE_KEY,JSON.stringify({
+      brand:brandSelect.value,pSort:priceSort.value,
+      min:minPrice.value,max:maxPrice.value,
+      rSort:reviewSort.value,latest:newArrivals.checked,
+      q:queryInput.value
+    }));
+
+    // re-run high/low marking after filtering/sorting
+    markHighLow();
+  }
+
+  (function restore(){
+    try{
+      const s=JSON.parse(localStorage.getItem(STORE_KEY)||'{}');
+      if(s.q!=null) queryInput.value=s.q;
+      if(s.brand) brandSelect.value=s.brand.toLowerCase();
+      if(s.pSort) priceSort.value=s.pSort;
+      if(s.min) minPrice.value=s.min;
+      if(s.max) maxPrice.value=s.max;
+      if(s.rSort) reviewSort.value=s.rSort;
+      if(s.latest) newArrivals.checked=true;
+      applyFilters();
+    }catch(_){}
+  })();
+
+  document.getElementById('applyFilters').addEventListener('click',()=>{ applyFilters(); closeDrawer(); });
+  document.getElementById('resetFilters').addEventListener('click',()=>{
+    localStorage.removeItem(STORE_KEY);
+    brandSelect.value=''; priceSort.value=''; minPrice.value=''; maxPrice.value='';
+    reviewSort.value=''; newArrivals.checked=false; queryInput.value='{{ query }}';
+    cards.forEach(c=>{ c.style.display=''; grid.appendChild(c); });
+    closeDrawer();
+    markHighLow(); // ensure clearing/marks after reset
+  });
+
+  queryInput.addEventListener('input',buildBrandOptions);
+
+  /* === ADDED: Best Deal badge, Trend arrows, Summary box functions === */
+
+  function addBestDealBadge(){
+    const visible = cards.filter(c => c.style.display !== 'none');
+    if(!visible.length) return;
+    // cheapest visible
+    let cheapest = visible.reduce((a,b) => toNum(a.dataset.price) <= toNum(b.dataset.price) ? a : b);
+    visible.forEach(c=>{
+      const bd = c.querySelector('.best-deal-holder');
+      if(bd) bd.innerHTML = '';
+    });
+    const slot = cheapest.querySelector('.best-deal-holder');
+    if(slot) slot.innerHTML = '<span class="best-deal-badge">🔥 BEST DEAL</span>';
+  }
+
+  function addTrendArrows(){
+    // If you have real history data for each product you should compute actual trend.
+    // For now we detect if product price has decimals — then draw small trend heuristics.
+    cards.forEach(card=>{
+      const slot = card.querySelector('.trend-arrow-holder');
+      if(!slot) return;
+      // naive heuristic: last char of dataset price — if decimal part exists treat as stable (→)
+      const raw = String(card.dataset.price || '');
+      const n = toNum(raw);
+      let arrow = '→'; let color = '#f3f4f6';
+      // Use tiny deterministic pseudo-trend based on hash of product title so it is stable per render
+      const seed = Array.from(card.querySelector('.title')?.textContent || '').reduce((s,ch)=>s + ch.charCodeAt(0), 0);
+      const r = (seed % 3);
+      if(r === 0) { arrow = '↑'; color = '#22c55e'; }
+      else if(r === 1) { arrow = '↓'; color = '#ef4444'; }
+      else { arrow = '→'; color = '#f59e0b'; }
+      slot.innerHTML = `<div class="trend-arrow" style="color:${color}">${arrow}</div>`;
+    });
+  }
+
+  function updateSummaryBox(){
+    const summary = document.getElementById('summaryBox');
+    const visible = cards.filter(c => c.style.display !== 'none');
+    if(!visible.length){ summary.style.display='none'; return; }
+    const sorted = visible.slice().sort((a,b)=> toNum(a.dataset.price)-toNum(b.dataset.price));
+    const lowest = sorted[0];
+    const highest = sorted[sorted.length-1];
+    const low = toNum(lowest.dataset.price);
+    const high = toNum(highest.dataset.price);
+    const save = high - low;
+    const lowName = (lowest.querySelector('.title')?.textContent || '').trim();
+    const highName = (highest.querySelector('.title')?.textContent || '').trim();
+    summary.innerHTML = `
+      <div><strong>Summary</strong></div>
+      <div style="margin-top:8px">Lowest: <b>₹${low.toLocaleString(undefined,{maximumFractionDigits:2})}</b> — ${htmlEscape(lowName)}</div>
+      <div>Highest: <b>₹${high.toLocaleString(undefined,{maximumFractionDigits:2})}</b> — ${htmlEscape(highName)}</div>
+      <div style="margin-top:10px;color:#b7ffd4">You can save up to <b>₹${save.toLocaleString(undefined,{maximumFractionDigits:2})}</b> by picking the best deal.</div>
+    `;
+    summary.style.display = 'block';
+  }
+
+  function htmlEscape(s){ return String(s).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]; }); }
+
+  // run small initializers
+  setTimeout(()=>{
+    addBestDealBadge();
+    addTrendArrows();
+    updateSummaryBox();
+  }, 250);
+
+  // ensure summary & badges update when filters/sorts run
+  const origApply = applyFilters;
+  applyFilters = function(){ origApply(); setTimeout(()=>{ addBestDealBadge(); addTrendArrows(); updateSummaryBox(); }, 100); };
+
+</script>
+
+<!-- ==================== Advanced Chatbot Widget (FINAL UPDATED) ==================== -->
+
+<style>
+/* YOUR ORIGINAL STYLES — NOT MODIFIED */
+#chatbot-btn {
+  position: fixed;
+  bottom: 26px; right: 26px; width: 72px; height: 72px;
+  border-radius: 50%; border: none; cursor: pointer;
+  background: linear-gradient(135deg,#0078d7,#a020f0);
+  color: #fff; font-size: 32px; z-index: 4000;
+  box-shadow: 0 10px 30px rgba(16,24,40,0.4);
+  display: grid; place-items: center;
+}
+#chatbot-window {
+  position: fixed; bottom: 110px; right: 26px;
+  width: 380px; max-width: calc(100vw - 48px);
+  height: 520px; border-radius: 14px; overflow: hidden;
+  display: none; flex-direction: column; z-index: 4001;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 18px 40px rgba(2,6,23,0.6);
+}
+#chatbot-header {
+  display:flex; align-items:center; gap:10px; padding:12px 14px;
+  background: linear-gradient(90deg,#0ea5e9,#7c3aed);
+  color:#fff; font-weight:800;
+}
+#chatbot-avatar { width:40px; height:40px; border-radius:50%; overflow:hidden; display:inline-block; box-shadow:0 6px 16px rgba(0,0,0,0.3); }
+#chatbot-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+
+#chatbot-messages { flex:1; padding:12px; overflow-y:auto; color:#e6eef8; font-size:14px; }
+.chat-row { display:flex; margin-bottom:8px; align-items:flex-end; }
+.chat-bubble { padding:10px 12px; border-radius:12px; max-width:78%; line-height:1.3; }
+.user { margin-left:auto; background: linear-gradient(90deg,#06b6d4,#0ea5e9); color:#fff; }
+.bot  { margin-right:auto; background: rgba(255,255,255,0.06); color:#fff; border:1px solid rgba(255,255,255,0.04); }
+
+#chatbot-input-row { display:flex; padding:10px; gap:8px; border-top:1px solid rgba(255,255,255,0.02); background:linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.02)); }
+#chatbot-input { flex:1; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background:rgba(0,0,0,0.2); color:#fff; outline:none; }
+#chatbot-send, #chatbot-mic { padding:10px 12px; border-radius:10px; border:none; cursor:pointer; font-weight:700; }
+#chatbot-send { background: linear-gradient(90deg,#10b981,#06b6d4); color:#02111b; }
+#chatbot-mic { background: linear-gradient(90deg,#ef4444,#fb923c); color:#fff }
+#chatbot-controls { margin-left:auto; display:flex; gap:8px; align-items:center; }
+#chatbot-close { background:transparent; border:none; color:#fff; font-weight:700; cursor:pointer; }
+
+/* ✨ FLOATING AVATAR EFFECT */
+#chatbot-btn {
+  animation: floaty 3s ease-in-out infinite;
+}
+@keyframes floaty {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
+/* ✨ FULL SCREEN MODE */
+#chatbot-window.fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  border-radius: 0 !important;
+}
+
+</style>
+
+<!-- BUTTON -->
+<button id="chatbot-btn">🤖</button>
+
+<!-- WINDOW -->
+<div id="chatbot-window">
+  <div id="chatbot-header">
+      <div id="chatbot-avatar">
+        <img src="{{ url_for('static', filename='images/bot-avatar.jpeg') }}">
+      </div>
+      <div style="flex:1">ShopAI Assistant</div>
+
+      <!-- NEW: FULLSCREEN BUTTON -->
+      <button id="chatbot-fullscreen" title="Fullscreen" style="background:none;border:none;color:white;font-size:20px;">⛶</button>
+
+      <button id="chatbot-close">✕</button>
+  </div>
+
+  <div id="chatbot-messages"></div>
+
+  <!-- NEW: AI AUTO-SUGGESTIONS -->
+  <b><div id="chatbot-suggest" style="padding:6px 12px;color:#00ddff;font-size:12px;"></div>
+
+  <div id="chatbot-input-row">
+    <input id="chatbot-input" type="text" placeholder="Ask about cheapest, highest, deals, compare…">
+    <button id="chatbot-mic">🎙️</button>
+    <button id="chatbot-send">Send</button>
+  </div>
+</div>
+
+
+<script>
+/* ORIGINAL VARIABLES */
+const CHAT_STORAGE_KEY = "shopai_chat_history_v1";
+const btn = document.getElementById("chatbot-btn");
+const win = document.getElementById("chatbot-window");
+const closeBtn = document.getElementById("chatbot-close");
+const messagesEl = document.getElementById("chatbot-messages");
+const inputEl = document.getElementById("chatbot-input");
+const sendBtn = document.getElementById("chatbot-send");
+const micBtn = document.getElementById("chatbot-mic");
+const suggestEl = document.getElementById("chatbot-suggest");
+
+/* NEW: FULLSCREEN */
+document.getElementById("chatbot-fullscreen").onclick = () =>
+  win.classList.toggle("fullscreen");
+
+/* SHOW/HIDE */
+btn.onclick = () => {
+  win.style.display = win.style.display === "flex" ? "none" : "flex";
+  if (win.style.display === "flex") inputEl.focus();
+};
+closeBtn.onclick = () => win.style.display = "none";
+
+/* LOCAL HISTORY */
+function loadLocalHistory(){
+  try{ return JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY)) || []; }catch{return[]}
+}
+function saveLocalHistory(arr){
+  try{localStorage.setItem(CHAT_STORAGE_KEY,JSON.stringify(arr));}catch{}
+}
+let localHistory = loadLocalHistory();
+
+function renderHistory(){
+  messagesEl.innerHTML="";
+  localHistory.forEach(m=>{
+    const row=document.createElement("div"); row.className="chat-row";
+    const bubble=document.createElement("div"); bubble.className="chat-bubble "+(m.role==="user"?"user":"bot");
+    bubble.innerText=m.content;
+    row.appendChild(bubble);
+    messagesEl.appendChild(row);
+  });
+  messagesEl.scrollTop=messagesEl.scrollHeight;
+}
+renderHistory();
+
+/* NEW: AUTO-SUGGESTIONS BASED ON HOMEPAGE PRODUCTS */
+function updateSuggestions(){
+  const cards = [...document.querySelectorAll(".product-card")];
+  if(cards.length===0){
+    suggestEl.innerText = "Tip: Search a product so I can analyze deals!";
+    return;
+  }
+  let names = cards.slice(0,3).map(c=>c.querySelector(".title")?.textContent.trim());
+  suggestEl.innerText = "Try: 'cheapest product', 'compare " + names.join(" vs ") + "'";
+}
+updateSuggestions();
+
+/* SEND MESSAGE */
+async function sendMessage(){
+  const txt = inputEl.value.trim();
+  if(!txt) return;
+
+  localHistory.push({role:"user", content:txt});
+  saveLocalHistory(localHistory);
+  renderHistory();
+  inputEl.value = "";
+
+  try{
+    const resp = await fetch("/chatbot", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({message:txt})
+    });
+    const data = await resp.json();
+    const reply = data.reply || "⚠️ No reply.";
+    
+    localHistory.push({role:"assistant", content:reply});
+    saveLocalHistory(localHistory);
+    renderHistory();
+
+    // NEW: SPEAK OUTPUT
+    speakText(reply);
+
+  }catch(e){
+    localHistory.push({role:"assistant", content:"⚠️ AI server offline"});
+    saveLocalHistory(localHistory); renderHistory();
+  }
+}
+
+sendBtn.onclick = sendMessage;
+inputEl.addEventListener("keypress", e => { if(e.key==="Enter") sendMessage(); });
+
+/* 🎤 VOICE RECOGNITION → SEND TO SERVER */
+let recognizing=false;
+if(window.SpeechRecognition || window.webkitSpeechRecognition){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang="en-IN";
+
+  rec.onresult = e=>{
+    inputEl.value = e.results[0][0].transcript;
+    sendMessage();
+  };
+
+  micBtn.onclick = ()=>{
+    if(!recognizing){ rec.start(); micBtn.innerText="⏺️"; recognizing=true; }
+    else{ rec.stop(); micBtn.innerText="🎙️"; recognizing=false; }
+  };
+} else {
+  micBtn.onclick = () => alert("Voice not supported");
+}
+
+/* 🔊 AI SPEECH OUTPUT */
+function speakText(text){
+  try{
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1.05;
+    utter.pitch = 1;
+    utter.lang = "en-US";
+    speechSynthesis.speak(utter);
+  }catch{}
+}
+
+/* LONG PRESS TO CLEAR CHAT */
+btn.oncontextmenu = e=>{
+  e.preventDefault();
+  if(confirm("Clear chat history?")){
+    localHistory=[];
+    saveLocalHistory(localHistory);
+    renderHistory();
+  }
+};
+
+</script>
+
+<!-- ==================== END UPDATED CHATBOT ==================== -->
+
+
+<!-- ==================== RESET CHAT AFTER SEARCH ==================== -->
+<script>
+const resetChat = "{{ 'true' if session.get('reset_chat') else 'false' }}";
+if (resetChat === "true") {
+    localStorage.removeItem("shopai_chat_history_v1");
+}
+</script>
+<!-- ================================================================= -->
+
+
+
+</body>
+</html>

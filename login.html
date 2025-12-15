@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login</title>
+
+  <style>
+    /* ===== Background Video ===== */
+    #bgVideo {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -2;
+      filter: brightness(0.7);
+      animation: slowPan 60s ease-in-out infinite alternate;
+    }
+
+    @keyframes slowPan {
+      0% { transform: scale(1) translate(0, 0); }
+      50% { transform: scale(1.05) translate(-10px, -8px); }
+      100% { transform: scale(1.1) translate(10px, 8px); }
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: -1;
+    }
+
+    /* ===== Login Box ===== */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .login-container {
+      background: rgba(15, 20, 45, 0.85);
+      border-radius: 15px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+      padding: 40px 50px;
+      width: 350px;
+      text-align: center;
+      color: #fff;
+      backdrop-filter: blur(10px);
+      animation: fadeIn 1s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .login-container h1 {
+      background: linear-gradient(90deg, #00c6ff, #8a2be2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 28px;
+      margin-bottom: 25px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      font-size: 15px;
+    }
+
+    input::placeholder {
+      color: #bbb;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #0078d7, #a020f0);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .login-btn:hover {
+      transform: scale(1.05);
+      filter: brightness(1.1);
+    }
+
+    p {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    a {
+      color: #00bfff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ===== Video Background ===== -->
+  <video autoplay muted loop playsinline id="bgVideo">
+    <source src="{{ url_for('static', filename='videos/space.mp4') }}" type="video/mp4">
+    Your browser does not support HTML5 video.
+  </video>
+
+  <div class="overlay"></div>
+
+  <!-- ===== Login Form ===== -->
+  <div class="login-container">
+    <h1>Welcome Back</h1>
+    <form action="/login" method="POST">
+      <input type="text" name="username" placeholder="Username" required />
+      <input type="password" name="password" placeholder="Password" required />
+      <button class="login-btn" type="submit">Login</button>
+    </form>
+    <p>Don’t have an account? <a href="/register">Register here</a></p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!-- @ts-nocheck -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ product.name }} | Price Analysis</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* --- Page Background --- */
+    body {
+      background: #4ce2d5;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #222;
+    }
+
+    /* --- Product Container --- */
+    .container {
+      max-width: 1400px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    /* --- Product Header Card --- */
+    .product-info {
+      background: rgba(228, 223, 223, 0.696);
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.777);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      backdrop-filter: blur(12px);
+      margin-bottom: 40px;
+      border: 1px solid rgba(182, 53, 53, 0.878);
+    }
+
+    .product-info img {
+      width: 350px;
+      max-width: 90%;
+      height: auto;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 18px rgba(244, 120, 120, 0.427);
+    }
+
+    .details {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .btn {
+      background: #3287e9;
+      padding: 12px 22px;
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      display: inline-block;
+      margin-top: 15px;
+    }
+
+    /* --- Chart Layout Grid --- */
+    .chart-wrapper {
+      display: flex;
+      gap: 25px;
+      justify-content: space-between;
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+
+    .chart-card {
+      flex: 1;
+      min-width: 420px;
+      background: rgba(255, 255, 255, 0.864);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 10px 25px rgba(200, 105, 105, 0.79);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgb(0, 0, 0);
+    }
+
+    h2 {
+      text-align: center;
+      font-weight: 900;
+      color: #000;
+      margin-bottom: 16px;
+    }
+
+    /* Download buttons */
+    .download-row {
+      display: flex;
+      justify-content: center;
+      margin-top: 12px;
+      gap: 12px;
+    }
+
+    .download-btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: #1a1a1a;
+      color: #fff;
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .chart-wrapper {
+        flex-direction: column;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1 style="text-align:center; margin-bottom:20px; font-weight:900;">
+      {{ product.name }}
+    </h1>
+
+    <!-- PRODUCT CARD -->
+    <div class="product-info">
+      <img src="{{ product.image }}" alt="{{ product.name }}">
+      <div class="details">
+        <p><strong>Current Price:</strong> ₹{{ product.price }}</p>
+        <p><strong>Store:</strong> {{ product.site }}</p>
+
+        <a href="{{ url_for('go_to_store', url=product.merchant_url) }}"
+           target="_blank" class="btn">Buy Now</a>
+      </div>
+    </div>
+
+    <!-- GRAPHS -->
+    <div class="chart-wrapper">
+
+      <!-- LEFT CHART - HISTORY -->
+      <div class="chart-card">
+        <h2>📘 7-Day Price History</h2>
+        <canvas id="historyChart" width="600" height="380"></canvas>
+
+        <div class="download-row">
+          <button class="download-btn" onclick="downloadChart(historyChart, 'history_chart.png')">PNG</button>
+          <button class="download-btn" onclick="downloadPDF(historyChart, 'history_chart.pdf')">PDF</button>
+        </div>
+      </div>
+
+      <!-- RIGHT CHART - FORECAST -->
+      <div class="chart-card">
+        <h2>💹 10-Day Price Forecast</h2>
+        <canvas id="forecastChart" width="600" height="380"></canvas>
+
+        <div class="download-row">
+          <button class="download-btn" onclick="downloadChart(forecastChart, 'forecast_chart.png')">PNG</button>
+          <button class="download-btn" onclick="downloadPDF(forecastChart, 'forecast_chart.pdf')">PDF</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  /* FIXED: History graph now updates correctly */
+  const historyPrices = JSON.parse('{{ product.history_prices | tojson | safe }}');
+
+  /* OLD single-forecast array (still used as fallback) */
+  const forecastPrices = {{ product.forecast_prices | tojson | safe }};
+
+  /* NEW: full comparison for 5 ML models + best model name */
+  const forecastComparison = {{ product.forecast_comparison | tojson | safe }};
+  const bestModel = {{ product.best_model | tojson | safe }};
+
+  function neonGlow(ctx){
+    const g = ctx.createLinearGradient(0,0,0,350);
+    g.addColorStop(0, "rgba(0,150,255,1)");
+    g.addColorStop(1, "rgba(0,255,170,1)");
+    return g;
+  }
+
+  const gridLines = { color:"rgba(0,0,0,0.20)", lineWidth:1.2 };
+
+  /* ---------- HISTORY CHART ---------- */
+  const ctx1 = document.getElementById("historyChart").getContext("2d");
+  const historyChart = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: historyPrices.map((_, i) => "Day " + (i + 1)),
+      datasets: [{
+        label: "Actual Price",
+        data: historyPrices,
+        borderColor: neonGlow(ctx1),
+        borderWidth: 4,
+        tension: 0.35,
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      plugins:{ legend:{ labels:{ font:{ weight:'bold' }}} },
+      scales:{
+        x:{
+          grid:gridLines,
+          ticks:{ font:{ weight:'bold'} },
+          title:{ display:true, text:"Days" }
+        },
+        y:{
+          grid:gridLines,
+          ticks:{ font:{ weight:'bold'} },
+          title:{ display:true, text:"Price (₹)" },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+
+  /* ---------- FORECAST CHART ---------- */
+  const ctx2 = document.getElementById("forecastChart").getContext("2d");
+
+  // If comparison data is available, use that; otherwise fallback to old single array
+  const defaultForecast = (forecastComparison && bestModel && forecastComparison[bestModel])
+      ? forecastComparison[bestModel]
+      : forecastPrices;
+
+  const forecastLabels = defaultForecast.map((_, i) => "+ " + (i + 1) + " days");
+
+  const modelColors = {
+    "Linear Regression": "#007bff",
+    "k-NN Regression": "#28a745",
+    "SVR": "#ffc107",
+    "Random Forest": "#dc3545",
+    "Gradient Boosting": "#6c757d"
+  };
+
+  const datasetsForecast = [];
+
+  if (forecastComparison && Object.keys(forecastComparison).length > 0) {
+    Object.entries(forecastComparison).forEach(([modelName, values]) => {
+      const isBest = (modelName === bestModel);
+      datasetsForecast.push({
+        label: modelName + (isBest ? " (Best)" : ""),
+        data: values,
+        borderColor: modelColors[modelName] || neonGlow(ctx2),
+        borderWidth: isBest ? 4 : 2,
+        tension: 0.35,
+        borderDash: isBest ? [] : [5,5],
+        pointRadius: isBest ? 4 : 3
+      });
+    });
+  } else {
+    // Fallback: old behaviour with single predicted line
+    datasetsForecast.push({
+      label: "Predicted Price",
+      data: forecastPrices,
+      borderColor: neonGlow(ctx2),
+      borderWidth: 4,
+      tension: 0.35,
+      borderDash: [5,5],
+      pointRadius: 4
+    });
+  }
+
+  const forecastChart = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: forecastLabels,
+      datasets: datasetsForecast
+    },
+    options: {
+      plugins:{ legend:{ labels:{ font:{ weight:'bold' }}} },
+      scales:{
+        x:{
+          grid:gridLines,
+          ticks:{ font:{ weight:'bold'} },
+          title:{ display:true, text:"Future Days" }
+        },
+        y:{
+          grid:gridLines,
+          ticks:{ font:{ weight:'bold'} },
+          title:{ display:true, text:"Price (₹)" },
+          beginAtZero: false
+        }
+      }
+    }
+  });
+
+  /* ---------- DOWNLOAD HELPERS (4K PNG) ---------- */
+  function downloadChart(chart, filename){
+    // Save original chart size
+    const originalWidth = chart.width;
+    const originalHeight = chart.height;
+
+    // Target 4K resolution
+    const targetWidth = 3840;
+    const targetHeight = 2160;
+
+    // Resize chart temporarily for export
+    chart.resize(targetWidth, targetHeight);
+    chart.update();
+
+    // Small timeout to ensure resize is applied
+    setTimeout(() => {
+      const link = document.createElement('a');
+      link.href = chart.toBase64Image('image/png', 1.0); // high quality PNG
+      link.download = filename;
+      link.click();
+
+      // Restore original size
+      chart.resize(originalWidth, originalHeight);
+      chart.update();
+    }, 100);
+  }
+
+  function downloadPDF(chart){
+    const image = chart.toBase64Image();
+    const win = window.open("");
+    win.document.write("<img src='" + image + "' width='100%'/>");
+    win.print();
+    win.close();
+  }
+</script>
+
+</body>
+</html>
