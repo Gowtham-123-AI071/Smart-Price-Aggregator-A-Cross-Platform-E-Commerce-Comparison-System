@@ -1,0 +1,97 @@
+/* ===============================
+   PROFESSIONAL UI THEME PACK
+   (Non-destructive, overrides nothing)
+   =============================== */
+
+/* ---- Light Mode Variables ---- */
+:root {
+  --bg-main: #f4f6f8;
+  --bg-gradient: linear-gradient(135deg, #eef2f7, #d9e2ec);
+  --text-main: #111;
+  --card-bg: rgba(255, 255, 255, 0.75);
+  --card-border: rgba(0, 0, 0, 0.12);
+  --search-bg: rgba(255,255,255,0.55);
+  --btn-grad: linear-gradient(135deg, #0078d7, #00c6ff);
+  --shadow-soft: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+/* ---- Dark Mode Variables ---- */
+body.dark {
+  --bg-main: #0a0f24;
+  --bg-gradient: linear-gradient(135deg,#0a0f24,#1b005a,#00081f);
+  --text-main: #fff;
+  --card-bg: rgba(255,255,255,0.05);
+  --card-border: rgba(255,255,255,0.25);
+  --search-bg: rgba(255,255,255,0.08);
+  --btn-grad: linear-gradient(135deg,#0078d7,#a020f0);
+  --shadow-soft: 0 8px 28px rgba(0,0,0,0.35);
+}
+
+/* ---- Apply Theme ---- */
+body {
+  background: var(--bg-gradient) !important;
+  color: var(--text-main) !important;
+  transition: background 0.35s ease, color 0.25s ease;
+}
+
+/* ---- Professional Glassmorphism Cards ---- */
+.product-card {
+  background: var(--card-bg) !important;
+  backdrop-filter: blur(14px) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--shadow-soft) !important;
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.product-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.22) !important;
+}
+
+/* ---- Premium Search Bar ---- */
+.search-box input {
+  background: var(--search-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* ---- Buttons ---- */
+.btn,
+.search-box button {
+  background: var(--btn-grad) !important;
+  font-weight: 600;
+  border: none !important;
+  transition: 0.25s ease;
+}
+.btn:hover,
+.search-box button:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.15);
+}
+
+/* ---- Theme Toggle Button ---- */
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 22px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--btn-grad);
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 700;
+  z-index: 2000;
+  box-shadow: var(--shadow-soft);
+  transition: 0.25s ease;
+}
+.theme-toggle:hover {
+  transform: translateY(-4px);
+}
+
+/* ---- Mobile Responsiveness ---- */
+@media (max-width: 768px) {
+  .product-card { width: 90% !important; }
+  .search-box { flex-direction: column; }
+  .search-box input { width: 90% !important; }
+  .filter-toggle { left: 12px !important; top: 160px !important; }
+}
